@@ -3,38 +3,38 @@
 #include <list>
 #include <stdio.h>
 #include <algorithm>
-#include <map>
+#include <set>
 using namespace std;
 Reader::Reader(DString file1name, DString file2name)
 {
-    Readtest(file1name);   //We are reading the data file first
-    ReadResults(file2name);  //then we read the target file
+    Readtest(file1name);
+    ReadResults(file2name);
 }
 
 void Reader::Readtest(DString fname) {
     DString delimit = " ,./?;:'!@#)`~$%^&*-(_+=|\"";   //This will be our delimiter for str_tok
-    tests.open(fname.c_str());                          //holding only utf-8 characters gives a more accurate algorithim
+    tests.open(fname.c_str());
     if (!tests) {
-       cerr << "File1 can not open" << endl;        //error handling
+       cerr << "File1 can not open" << endl;
        exit(EXIT_FAILURE);
     }
     tests.ignore(256, '\n');
-    char r [1000];    //this char will be our buffer
+    char r [1000];
     while (tests.getline(r,999, '\n')) {  //read each line into the buffer
         DString comma = ",";
-        vector<DString>SinTweet;
+        DVector<DString>SinTweet;
         char *token;            //this token is our buffer for spliting file
-        token= strtok(r,",");    //read first number into a token
+        token= strtok(r,",");
         DString num{token};
         token = strtok(NULL, ",");   //no need to store num so we wont add it to a vector
-        DString ID{token};           //Same goes with ID
+        DString ID{token};
         token = strtok(NULL, delimit.c_str());
         while (token != NULL) {
             DString temp{token};        //This loop breaks a whole line into individual tweets...
-            SinTweet.push_back(temp);   //which we will then add to a vector
+            SinTweet.push_back(temp);
             token = strtok(NULL, delimit.c_str());
         }
-        Tweet.push_back(SinTweet); //we add our vector to our 2D vector
+        Tweet.push_back(SinTweet);
     }
     tests.close();
 }
@@ -52,23 +52,24 @@ void Reader::ReadResults(DString fread) {    //This function reads the target fi
         tests.ignore(1, ',');  //CSV files have commas so we must ignore them
         int Result;
         tests >> Result;        //Result tells us if the tweet has a 0 or 4
-        tests.ignore(1, ',');       //it is THE most important part of this function
+        tests.ignore(1, ',');
         long ID;
         tests >> ID;
         Results.push_back(Result);    //we add it to a vector that holds all Results
     }
     tests.close();
 }
-void Reader::write(int pon) {   //We will call this function twice in main
-    long index{0};              //if pon = 0 we will be creating positive word file
-    long i3{0};                 //if pon = 4 we will create negative word file
-    vector<int> c;
-    vector <DString> posword;
-    for (auto & c : Tweet) {      //We are going to iterate over each full tweet
-        if (Results[index]== pon) {   //If that tweet has a 0 OR 4 (whatever pon is) we will add that file to a vector...
-            for (auto & d : c) {            //which we will then use in file creation
+//We will call this function twice in main
+void Reader::write(int pon) {
+    long index{0};              //if pon = 0,4 creates negtive,positive file respectively
+    long i3{0};
+    DVector<int> c;
+    DVector <DString> posword;
+    for (auto & c : Tweet) {      //We are going to iterate over each full tweet and add each word to a vector
+        if (Results[index]== pon) {
+            for (auto & d : c) {
                DString b = Tweet[index][i3];
-               DString a = b.c_str();     //We want to be safe and make sure we have no ambiguous values with a word in Tweet
+               DString a = b.c_str();
                posword.push_back(a);
                i3++;   //i3 loops through Each individual word
             }
@@ -77,45 +78,64 @@ void Reader::write(int pon) {   //We will call this function twice in main
       index ++;   //index loops through each tweet
     }
     index = 0;
-    sort(posword.begin(), posword.end());   //Now we will use overloaded < operator to sort our vector of good/bad words
-    vector<DString> p = posword;
-    map<DString,int> maps;    //This map will be important later because it indexs MUCH faster than a vector
-    p.erase(unique(p.begin(),p.end()), p.end());    //now we will have vector that stores ONE instance of each good/bad word
-    int loop{0};
-    for (auto & f : p){
-        maps.insert(make_pair(p[loop],0));   //This adds a key for each indivdual good/bad word and sets the value to 0
-        loop++;
+    sort(posword.begin(), posword.end());
+    DVector<DString> pas = posword;
+    DVector<pair<DString,int>> Pairs;       //Pairs holds both a word and how frequently it appears
+    auto uniq = unique(pas.begin(),pas.end());
+    int change =  uniq-pas.begin();   //this will return location of where duplicates appear
+    DVector<DString> p;
+    int d = 0;
+    for (auto iter = pas.begin(); d < change; iter++){
+        p.push_back(*iter);    //we are putting only unique elements into p
+        d++;
     }
-    loop=0;
-    for (auto & b :posword) {      //Now we count freq. of a certain bad/good word by looping through complete word vector
-        maps[posword[loop]]++;   //if Word exists in maps we increase value by 1
-        loop++;
+    for (auto ite = p.begin(); ite != (p.end()); ite++){
+        pair<DString,int> maps;
+        DString place = *ite;
+        maps.first = place;              //we are setting each value into a temporary pair
+        maps.second = 1;
+        Pairs.push_back(maps);   //we now add the pair to our vector of pairs
     }
-    ofstream fileWrite;  //This will create either or good or bad file
+    int stored= 0;
+    for (auto it = Pairs.begin(); it != Pairs.end(); it++) {   //this iterates through pairs and adds frequency of each key
+         for(int i = stored ; i< posword.getsize(); i++) {
+             if(it->first == posword[i]) {         //since posword is sorted they should all appear in order
+                 (it->second)++;
+                 stored++;
+             }                              //since stored is our loop variable we have to add to it as a refrence point
+             else {
+                 stored++;
+                 break;                     //once we reach the end of a sorted word we will break to save runtime
+             }
+         }
+    }
+    //This will create either or good or bad file
+    ofstream fileWrite;
     if (pon == 0)
         fileWrite.open("Negative_Words.txt");
     else if (pon == 4)
         fileWrite.open("Positive_Words.txt");
-    for (auto & loops: maps) {      //We want bad values to be negative for calc. later
+    for (auto ite = Pairs.begin(); ite != Pairs.end(); ite++) {
         if (pon == 0)
-            fileWrite << -(loops.second) << " " << loops.first << endl;
+            fileWrite << -(ite->second) << " " << ite->first << endl;
         if (pon == 4) {
-            fileWrite << loops.second << " " << loops.first << endl;
+            fileWrite << ite->second << " " << ite->first << endl;
         }
     }
     fileWrite.close();
 }
-void Reader::CreateEndFile(DString FileName) { // this method creates our final file for scoring algorithim
+// this method creates our final file for scoring algorithim
+void Reader::CreateEndFile(DString FileName) {
     ifstream neg;
     ifstream pos;
     neg.open("Negative_Words.txt");  //We want to open BOTH files and store them
     pos.open("Positive_Words.txt");
-    vector<int>NegScores;
-    vector<DString>NegWords;
-    vector<int>PosScores;
-    vector<DString>PosWords;
-    vector<DString>FinalWord;
-    vector<double>FinalScore;
+    DVector<int>NegScores;
+    DVector<DString>NegWords;
+    DVector<int>PosScores;
+    DVector<DString>PosWords;
+    DVector<DString>FinalWord;
+    DVector<int>FinalScore;
     if(!neg) {
         cerr << "Negative_Words.txt could not be opened" << endl;
         exit(EXIT_FAILURE);
@@ -144,10 +164,11 @@ void Reader::CreateEndFile(DString FileName) { // this method creates our final 
     }
     pos.close();
     int counter{0};
-    for (auto & a: PosWords) { //Now we will iterate through every word and assign it a final score
-        auto iter = lower_bound (NegWords.begin(), NegWords.end(), PosWords[counter]); //This searches if a word Exists in Both by a speed of log(n)
-        if ( iter != NegWords.end() && *iter == PosWords[counter]) {  //if the word is found
-            int index = distance(NegWords.begin(), iter);
+    for (int i =0; i < PosWords.getsize(); i++) { //Now we will iterate through every word and assign it a final score
+        auto iter = lower_bound (NegWords.begin(), NegWords.end(), PosWords[counter]);
+       if ( iter != NegWords.end() && *iter == PosWords[counter]) {  //if the word is found
+
+            auto index = (iter - NegWords.begin());
             if (PosScores[counter] == 0) {  //this is if index is 0 we will have a special case to avoid divide/0
                 PosScores[counter] = 1;
             }
@@ -178,7 +199,7 @@ void Reader::CreateEndFile(DString FileName) { // this method creates our final 
         } // what about the rest of the negative words?? well we have to do those too
     }
     counter = 0;
-    for ( auto & b : NegWords) {  //This seaches for negative words and positive words just like above
+    for (int i =0; i < NegWords.getsize(); i++) {  //This seaches for negative words and positive words just like above
         auto iter = lower_bound (PosWords.begin(),PosWords.end(), NegWords[counter]);
               if (iter == PosWords.end()) {       //NOW we add the word to negative because we dont have only negative occurances added yet
                   int store = NegScores[counter];
@@ -190,7 +211,7 @@ void Reader::CreateEndFile(DString FileName) { // this method creates our final 
     ofstream final;
     final.open(FileName.c_str());   //Now we write to algorithim file which we will use in output
     int count = 0;
-    for (auto & i: FinalWord){
+    for (int i =0; i <FinalWord.getsize(); i++){
         final << FinalScore[count] << FinalWord[count] << endl;
         count ++;
     }

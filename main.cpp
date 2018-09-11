@@ -15,13 +15,13 @@ int main(int argc, char * argv[])
        else if (argc > 1 && strcmp(argv[1], "-c") == 0)
        {
         //Runing Classification
-        cout <<"Creating Tweet Classification File. \n This should around a minute" << endl;
+        cout <<"Creating Tweet Classification File. \nThis should take around a minute" << endl;
         classification create(argv[2],argv[3],argv[4]);
        }
        else if (argc > 1 && strcmp(argv[1], "-r") == 0)
        {
         //running trainer
-        cout <<"Creating File for Tweet Classification. \n  This will take about a minute" << endl;
+        cout <<"Creating File for Tweet Classification. \nThis will take about a minute" << endl;
         Reader out(argv[2], argv[3]);
         out.write(4);
         out.write(0);

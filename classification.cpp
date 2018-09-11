@@ -1,11 +1,10 @@
 #include "classification.h"
 #include <algorithm>
-#include <string>
 using namespace std;
 classification::classification(DString file, DString ScoreFile, DString FileName)
 {
-        GetScores(ScoreFile);    //We want to read scoring file first to store in Scores map
-        RTweets(file,FileName);  //We then use our variables from GetScores to make reading RTweets easier
+        GetScores(ScoreFile);
+        RTweets(file,FileName);
 }
 void classification::GetScores(DString SName) {
     ifstream Reader2;
@@ -18,19 +17,20 @@ void classification::GetScores(DString SName) {
         int score;
         Reader2 >> score;
         DString Words;
-        Reader2 >> skipws >> Words;  //Scoring file had excess whitespace so  we try and bypass it
-        DString Word2;              //The next two lines are ensuring we dont have any whitespace preceeding a string
+        Reader2 >> skipws >> Words;  //Scoring file has excess whitespace so will try and bypass it
+        DString Word2;
         Word2 =  Words.substring(1,Words.getLength());
-        Scores.insert(make_pair(Word2,score));  //We are storing these values in a map because they are fast containers
-    }                                           // Much faster to search than vectors
+        WVect.push_back(Word2);
+        Scores.push_back(score);
+    }
     Reader2.close();
 }
 void classification::RTweets(DString FName,DString FileName) {
     DString delimit = " ,./?;:'!@#)`~$%^&*-(_+=|\"";
     vector<int> tes;        //You will see this is similar to the reader class.
-    ifstream Reader;        //We are essentially doing something similar, but ALSO adding scores to a tweet using Talley
+    ifstream Reader;
     Reader.open(FName.c_str());
-    if (!Reader) {                                   //Error Handling
+    if (!Reader) {
         cerr << "Classification File could not be opened" << endl;
         exit(EXIT_FAILURE);
     }
@@ -40,18 +40,18 @@ void classification::RTweets(DString FName,DString FileName) {
     while(Reader.getline(buffer, 999, '\n')) {
         int Talley = 0;
         char* tokenBuffer;  //This is our second buffer to seperate words
-        tokenBuffer = strtok(buffer, ",");   //Reading Tweet number and storing it
+        tokenBuffer = strtok(buffer, ",");
         int push = atoi(tokenBuffer);
         Nums.push_back(push);
         tokenBuffer = strtok(NULL, ",");   //Continue to use this buffer until the line ends
         long IPush = atol(tokenBuffer);
         IDs.push_back(IPush);               //Storing the ID for printing later on
         tokenBuffer = strtok(NULL, delimit.c_str());
-        while(tokenBuffer != NULL) {         //This is where we handle the strings
-            DString Tweet{tokenBuffer};      //We are seperating each word from a tweet and checking if it exists in Scores map
-            if (Scores.count(Tweet) == 1) {   //If it DOES exist in the map, then we add the score from the Scores.second
-                Talley += Scores[Tweet];
-            }
+        while(tokenBuffer != NULL) {
+            DString Tweet{tokenBuffer};      //We are seperating each word from a tweet and checking if it exists in Scores
+            auto iter= lower_bound(WVect.begin(),WVect.end(),Tweet);
+            int index = -(WVect.begin() - iter);
+            Talley += Scores[index];
             tokenBuffer = strtok(NULL, delimit.c_str());   //loop buffer until the line ends
         }
         Tallies.push_back(Talley);    //We add it to a vector of Tallies for output later in the file
@@ -60,13 +60,18 @@ void classification::RTweets(DString FName,DString FileName) {
     Reader.close();
     OutputTotal(FileName);
 }
-void classification::OutputTotal(DString FileName) {  //in this method we will be creating our final file
-    int i = 0;                      //We will loop through tallies and if its positive we will index a tweet as good/bad
+//in this method we will be creating our final file
+void classification::OutputTotal(DString FileName) {
+    int i = 0;
     for (auto & loop: Tallies) {
-        if (Tallies[i] > 0)
-            GoodOrBad.push_back(4);     //This means the tweet was good, since it had a positive score
-        else
-            GoodOrBad.push_back(0);    //since this pushes 0, that means the tweet had a score of 0 or lower
+        if (Tallies[i] > 0) {
+            int pos = 4;
+            GoodOrBad.push_back(pos);
+            }//This means the tweet was good, since it had a positive score
+        else {
+            int neg = 0;
+            GoodOrBad.push_back(neg);
+            }//since this pushes 0, that means the tweet had a score of 0 or lower
         i++;
     }
     ofstream file;

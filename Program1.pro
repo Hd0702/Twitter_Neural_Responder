@@ -7,10 +7,12 @@ SOURCES += main.cpp \
     reader.cpp \
     dstring.cpp \
     classification.cpp \
-    tests.cpp
+    tests.cpp \
+    vectortest.cpp
 
 HEADERS += \
     reader.h \
     dstring.h \
     classification.h \
-    catch.hpp
+    catch.hpp \
+    dvector.h

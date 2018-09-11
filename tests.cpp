@@ -1,11 +1,11 @@
-//#define CATCH_CONFIG_MAIN
 #include "catch.hpp"
 
 #include <cstring>
 #include "dstring.h"
+#include "dvector.h"
 
-TEST_CASE("String class", "[String]"){        //this is very close to the handout
-    DString s[10];                              //I mainly added tests for the less than operator
+TEST_CASE("String class", "[String]"){
+    DString s[10];
     s[0] = DString("testString");
     s[1] = DString("a test string");
     s[2] = DString("");

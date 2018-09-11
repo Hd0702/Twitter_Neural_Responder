@@ -4,21 +4,21 @@
 #include <fstream>
 #include "dstring.h"
 #include <vector>
+#include "dvector.h"
 using namespace std;
 class Reader
 {
 private:
 ifstream tests;
-vector<int>Results;         //Results reads if a tweet is a 4 or 0
-vector<vector<DString>>Tweet;    //This vector hold a tweet which is parsed into seperate words
+DVector<int>Results;
+DVector<DVector<DString>>Tweet;    //This vector hold a tweet which is parsed into seperate words
 
 public:
-   Reader(DString, DString);      //constructor
-   void Readtest(DString);       //this reads data file
-   void ReadResults(DString);    //this reads target file
-   void write(int);              //this writes files for either positive or negative words
-   void CreateEndFile(DString);  //this creates the end file for both positive/negative words
-    //will these return what we want?
+   Reader(DString, DString);
+   void Readtest(DString);
+   void ReadResults(DString);
+   void write(int);
+   void CreateEndFile(DString);
 };
 
 #endif // READER_H
